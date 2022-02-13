@@ -7,8 +7,7 @@ Thumbs.db
 *.sublime-project
 *.sublime-workspace
 # ah21
-t-zhspuncs2022-02-12.lua
-t-zhspuncs copy.lua
+*.bak
 
 # Vendors
 node_modules/
