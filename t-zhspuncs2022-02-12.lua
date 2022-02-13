@@ -1,7 +1,8 @@
--- t-zhspuncs.lua
+--ah21 t-zhspuncs.lua
 moduledata = moduledata or {}
 moduledata.zhspuncs = moduledata.zhspuncs or {}
 zhspuncs = moduledata.zhspuncs
+-- zhspuncs = zhspuncs or {}
 
 local hlist = nodes.nodecodes.hlist
 local glyph   = nodes.nodecodes.glyph --node.id ('glyph')
@@ -18,16 +19,15 @@ local new_kern = nodes.pool.kern
 local tasks = nodes.tasks
 
 
--- 正常左、右的预期留空率（前两个），左、右压缩比（后两个）
--- 比如`“`，单用时左、右空率0.5、0.1，在标点组中左右空率为0.5*0.5、0.1*1.0
--- TODO：
--- 按字体信息逐一计算，使得正常标点宽度与字体设计一致；
--- 调整为c-p-c、c-p--p-c六种数据（目前缺cp--pc两种）；
--- 再左、右、中标点分组
+
+-- 标点单用时左、右的预期留空率，有后续标点时的调整比例
+-- 比如`“`，单用时左、右空率0.5、0.1，后续标点时0.5*0.5、0.1*1.0
+-- TODO 改成按字体信息逐一计算（性能问题？？？）；
+-- 分出cp、pc、pp、ppc四种模式；或再左右标点分组？？？
 local puncs = {
     -- 左半标点
-    [0x2018] = {0.5, 0.1, 0.4, 1.0}, -- ‘
-    [0x201C] = {0.5, 0.1, 0.4, 1.0}, -- “
+    [0x2018] = {0.5, 0.1, 1.0, 1.0}, -- ‘
+    [0x201C] = {0.5, 0.1, 0.5, 1.0}, -- “
     [0x3008] = {0.3, 0.1, 0.4, 1.0}, -- 〈
     [0x300A] = {0.5, 0.1, 0.4, 1.0}, -- 《
     [0x300C] = {0.5, 0.1, 0.4, 1.0}, -- 「
@@ -39,8 +39,8 @@ local puncs = {
     [0xFF3B] = {0.5, 0.1, 0.4, 1.0}, -- ［
     [0xFF5B] = {0.5, 0.1, 0.4, 1.0}, -- ｛
     -- 右半标点
-    [0x2019] = {0.1, 0.5, 1.0, 0.4}, -- ’
-    [0x201D] = {0.1, 0.5, 1.0, 0.4}, -- ”
+    [0x2019] = {0.1, 0.5, 1.0, 0.0}, -- ’
+    [0x201D] = {0.1, 0.5, 1.0, 0.0}, -- ”
     [0x3009] = {0.1, 0.3, 1.0, 0.4}, -- 〉
     [0x300B] = {0.1, 0.5, 1.0, 0.4}, -- 》
     [0x300D] = {0.1, 0.5, 1.0, 0.4}, -- 」
@@ -52,14 +52,14 @@ local puncs = {
     [0xFF3D] = {0.1, 0.5, 1.0, 0.4}, -- ］
     [0xFF5D] = {0.1, 0.5, 1.0, 0.4}, -- ｝
     -- 独立右标点
-    [0x3001] = {0.15, 0.6, 1.0, 0.5},   -- 、
-    [0x3002] = {0.15, 0.6, 1.0, 0.5},   -- 。
-    [0xFF0C] = {0.15, 0.6, 1.0, 0.5},   -- ，
-    [0xFF0E] = {0.15, 0.6, 1.0, 0.5},   -- ．
-    [0xFF1A] = {0.15, 0.6, 1.0, 0.5},   -- ：
-    [0xFF1B] = {0.15, 0.6, 1.0, 0.5},   -- ；
-    [0xFF01] = {0.15, 0.6, 1.0, 0.5},   -- ！
-    [0xFF1F] = {0.15, 0.6, 1.0, 0.5},   -- ？
+    [0x3001] = {0.15, 0.5, 1.0, 0.5},   -- 、
+    [0x3002] = {0.15, 0.5, 1.0, 0.5},   -- 。
+    [0xFF0C] = {0.15, 0.5, 1.0, 0.5},   -- ，
+    [0xFF0E] = {0.15, 0.5, 1.0, 0.5},   -- ．
+    [0xFF1A] = {0.15, 0.5, 1.0, 0.5},   -- ：
+    [0xFF1B] = {0.15, 0.5, 1.0, 0.5},   -- ；
+    [0xFF01] = {0.15, 0.5, 1.0, 0.5},   -- ！
+    [0xFF1F] = {0.15, 0.5, 1.0, 0.5},   -- ？
     [0xFF05] = {0.00, 0.0, 1.0, 0.5},    -- ％
     [0x2500] = {0.00, 0.0, 1.0, 1.0},    -- ─
     -- 双用左右皆可，单用仅在文右
@@ -67,7 +67,7 @@ local puncs = {
     [0x2026] = {0.10, 0.1, 1.0, 1.0},    -- …
 }
 
--- 旋转过的标点/竖排标点（装在hlist中，<hlist> n.head.data=10000）
+-- 旋转过的标点（装在hlist中，n.head.data=10000）
 local puncs_r = {
     [0x3001] = {0.15, 0.6, 1.0, 0.1},   -- 、
     [0x3002] = {0.15, 0.6, 1.0, 0.1},   -- 。
@@ -80,8 +80,6 @@ local puncs_r = {
 }
 
 -- 是标点结点(false,glyph:1,hlist:2)
--- @plyph | hlist n 结点
--- @return false | 1 | 2
 local function is_punc_glyph_or_hlist(n)
     if n.id == glyph and puncs[n.char] then
         return 1
@@ -184,7 +182,7 @@ local function is_cjk_ideo (n)
     end
 end
 
--- r个空铅/嵌块(quad)的宽度（？？用结点宽度似乎更恰当）
+-- 空铅/嵌块(quad)
 local function quad_multiple (font, r)
     local quad = quaddata[font]
     return r * quad
@@ -194,38 +192,36 @@ end
 local function process_punc (head, n, punc_flag)
     local is_glyph = (is_punc_glyph_or_hlist(n) == 1)
     local is_hlist = (is_punc_glyph_or_hlist(n) == 2)
-    local glyph_n = nil -- 当前字模结点
-    local puncs_t = nil -- 当前标点表
+    local current_glyph_node
+    local current_puncs_table
     if is_glyph then
-        glyph_n = n
-        puncs_t = puncs
+        current_glyph_node = n
+        current_puncs_table = puncs
     elseif is_hlist then
-        glyph_n = n.head
-        puncs_t = puncs_r
+        current_glyph_node = n.head
+        current_puncs_table = puncs_r
     end
     -- 取得结点字体的描述（未缩放的原始字模信息）
-    local char = glyph_n.char
-    local font = glyph_n.font
-    local desc = fontdata[font].descriptions[char]
+    local desc = fontdata[current_glyph_node.font].descriptions[current_glyph_node.char]
     if not desc then return end
-    local quad = quad_multiple (font, 1)
+    local quad = quad_multiple (current_glyph_node.font, 1)
 
     local l_space = desc.boundingbox[1] / desc.width --左空比例
     local r_space = (desc.width - desc.boundingbox[3]) / desc.width --右空比例
     local l_kern, r_kern = 0.0, 0.0
 
+    -- 仅本结点是标点
     if punc_flag == "only" then
-        l_kern = (puncs_t[char][1] - l_space) * quad --c-pc
-        r_kern = (puncs_t[char][2] - r_space) * quad --cp-c
-    elseif punc_flag == "with_next" then
-        l_kern = (puncs_t[char][1] - l_space) * quad --c-pc
-        r_kern = (puncs_t[char][2] * puncs_t[char][4] - r_space) * quad --cpp-c
+        l_kern = (current_puncs_table[current_glyph_node.char][1] - l_space) * quad
+        r_kern = (current_puncs_table[current_glyph_node.char][2] - r_space) * quad
+    -- 本结点和后一个结点都是标点
     elseif punc_flag == "with_pre" then
-        l_kern = (puncs_t[char][1] * puncs_t[char][3] - l_space) * quad -- c-ppc
-        r_kern = (puncs_t[char][2] * puncs_t[char][4] - r_space) * quad --cpp-c
+        l_kern = (current_puncs_table[current_glyph_node.char][1] * current_puncs_table[current_glyph_node.char][3] - l_space) * quad
+    elseif punc_flag == "with_next" then
+        r_kern = (current_puncs_table[current_glyph_node.char][2] * current_puncs_table[current_glyph_node.char][4] - r_space) * quad
     elseif punc_flag == "all" then
-        l_kern = (puncs_t[char][1] * puncs_t[char][3] - l_space) * quad -- c-ppc
-        r_kern = (puncs_t[char][2] * puncs_t[char][4] - r_space) * quad --cpp-c
+        l_kern = (current_puncs_table[current_glyph_node.char][1] * current_puncs_table[current_glyph_node.char][3] - l_space) * quad
+        r_kern = (current_puncs_table[current_glyph_node.char][2] * current_puncs_table[current_glyph_node.char][4] - r_space) * quad
     end
 
     insert_before (head, n, new_kern (l_kern))
@@ -248,8 +244,6 @@ end
 -- 包装回调任务：分行前的过滤器
 function zhspuncs.my_linebreak_filter (head, is_display)
     compress_punc (head)
-    -- print(":::压缩标点后nodes.tosequence(head):::")
-    -- print(nodes.tosequence(head))
     return head, true
 end
 
@@ -301,8 +295,6 @@ function zhspuncs.align_left_puncs(head)
         end
         it = it.next
     end
-    -- print(":::分摊行头压缩后nodes.tosequence(head):::")
-    -- print(nodes.tosequence(head))
     return head, done
 end
 
@@ -314,38 +306,27 @@ function zhspuncs.opt ()
     nodes.tasks.appendaction("finalizers", "after", "zhspuncs.align_left_puncs")
 end
 
--- 标点悬挂/突出
-local classes = fonts.protrusions.classes
-local vectors = fonts.protrusions.vectors
--- 挂载悬挂表、注册悬挂类
-classes.zhv = {
-vector = 'zhv',
-factor = 1,
+-- 未使用？？？
+fonts.protrusions.vectors['myvector'] = {  
+   [0xFF0c] = { 0, 0.60 },  -- ，
+   [0x3002] = { 0, 0.60 },  -- 。
+   [0x2018] = { 0.60, 0 },  -- ‘
+   [0x2019] = { 0, 0.60 },  -- ’
+   [0x201C] = { 0.50, 0 },  -- “
+   [0x201D] = { 0, 0.35 },  -- ”
+   [0xFF1F] = { 0, 0.60 },  -- ？
+   [0x300A] = { 0.60, 0 },  -- 《
+   [0x300B] = { 0, 0.60 },  -- 》
+   [0xFF08] = { 0.50, 0 },  -- （
+   [0xFF09] = { 0, 0.50 },  -- ）
+   [0x3001] = { 0, 0.50 },  -- 、
+   [0xFF0E] = { 0, 0.50 },  -- ．
 }
--- 合并两表到新表zhvector，而不是修改font-ext.lua中的vectors.quality
--- 横排时不一样
-vectors.zhv = table.merged (vectors.quality, {
-    [0xFF0c] = { 0, 0.55 },  -- ，
-    [0x3002] = { 0, 0.60 },  -- 。
-    [0x2018] = { 0.60, 0 },  -- ‘
-    [0x2019] = { 0, 0.60 },  -- ’
-    [0x201C] = { 0.50, 0 },  -- “
-    [0x201D] = { 0, 0.35 },  -- ”
-    [0xFF1F] = { 0, 0.60 },  -- ？
-    [0x300A] = { 0.60, 0 },  -- 《
-    [0x300B] = { 0, 0.60 },  -- 》
-    [0xFF08] = { 0.50, 0 },  -- （
-    [0xFF09] = { 0, 0.50 },  -- ）
-    [0x3001] = { 0, 0.60 },  -- 、
-    [0xFF0E] = { 0, 0.50 },  -- ．
-    -- [0xFF01] = { 0, 0.10 },   -- ！
-    -- [0xFF1B] = { 0, 0.17 },   -- ；
-})
--- 扩展原有的字体特性default(后)为default(前)
--- 在字体定义中应用
-context.definefontfeature({"default"},{"default"},{protrusion="zhv"})
--- 或立即应用（只能一种字体？？注意脚本的引用时机）
-context.definedfont({"Serif*default"})
+
+-- 未使用？？？
+fonts.protrusions.classes['myvector'] = {
+   vector = 'myvector', factor = 1
+}
 
 return zhspuncs
 
