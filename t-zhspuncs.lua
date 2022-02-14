@@ -1,4 +1,3 @@
--- t-zhspuncs.lua
 moduledata = moduledata or {}
 moduledata.zhspuncs = moduledata.zhspuncs or {}
 zhspuncs = moduledata.zhspuncs
@@ -342,6 +341,16 @@ vectors.myvector = table.merged (vectors.quality, {
     -- [0xFF1B] = { 0, 0.17 },   -- ；
 })
 
+-- 扩展原有的字体特性default(后)为default(前)
+context.definefontfeature({"default"},{"default"},{mode="node",protrusion="myvector",liga="yes"})
+-- 在字体定义中应用或立即应用（ 注意脚本的引用时机; 只能一种字体？？ TODO）
+context.definedfont({"Serif*default"})
+--[[
+% 扩展原有的字体特性default(后)为default(前)
+\definefontfeature[default][default][mode=node,protrusion=myvector,liga=yes]
+% 或立即应用（只能一种字体？？注意脚本的引用时机）
+\definedfont[Serif*default]
+--]]
 
 return zhspuncs
 
