@@ -8,6 +8,7 @@ Thumbs.db
 *.sublime-workspace
 # ah21
 *.bak
+*.code-workspace
 
 # Vendors
 node_modules/
