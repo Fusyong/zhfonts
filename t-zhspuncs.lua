@@ -318,13 +318,13 @@ end
 local classes = fonts.protrusions.classes
 local vectors = fonts.protrusions.vectors
 -- 挂载悬挂表、注册悬挂类
-classes.zhv = {
-vector = 'zhv',
+classes.myvector = {
+vector = 'myvector',
 factor = 1,
 }
--- 合并两表到新表zhvector，而不是修改font-ext.lua中的vectors.quality
+-- 合并两表到新表myvector，而不是修改font-ext.lua中的vectors.quality
 -- 横排时不一样
-vectors.zhv = table.merged (vectors.quality, {
+vectors.myvector = table.merged (vectors.quality, {
     [0xFF0c] = { 0, 0.55 },  -- ，
     [0x3002] = { 0, 0.60 },  -- 。
     [0x2018] = { 0.60, 0 },  -- ‘
@@ -341,11 +341,7 @@ vectors.zhv = table.merged (vectors.quality, {
     -- [0xFF01] = { 0, 0.10 },   -- ！
     -- [0xFF1B] = { 0, 0.17 },   -- ；
 })
--- 扩展原有的字体特性default(后)为default(前)
--- 在字体定义中应用
-context.definefontfeature({"default"},{"default"},{protrusion="zhv"})
--- 或立即应用（只能一种字体？？注意脚本的引用时机）
-context.definedfont({"Serif*default"})
+
 
 return zhspuncs
 
