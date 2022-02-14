@@ -1,4 +1,4 @@
-本项目是对[liyanrui/zhfonts](https://github.com/liyanrui/zhfonts)项目的改造，目前可用于ConTeXt中文直排实验项目[vertical-typesetting](https://github.com/Fusyong/vertical-typesetting)，谨致谢忱！
+本项目是对[liyanrui/zhfonts](https://github.com/liyanrui/zhfonts)项目的改造，谨致谢忱！目前可用于ConTeXt中文直排实验项目[vertical-typesetting](https://github.com/Fusyong/vertical-typesetting)。
 
 ## 调整说明
 
