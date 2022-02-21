@@ -78,13 +78,13 @@ local puncs_r = {
     [0xFF1F] = {0.15, 0.8, 0.7, 0.7},   -- ？
 }
 
--- 是标点结点(false,glyph:1,hlist:2)
--- @plyph | hlist n 结点
+-- 是标点结点(false, glyph:1, hlist:2)
+-- @glyph | hlist n 结点
 -- @return false | 1 | 2
 local function is_punc_glyph_or_hlist(n)
     if n.id == glyph and puncs[n.char] then
         return 1
-    elseif n.id == hlist and n.head and n.head.data and n.head.data == 10000 and puncs[n.head.char] then --n.head.data == 10000 是直排插件所作的标记
+    elseif n.id == hlist and node.getproperty(n) and puncs[node.getproperty(n).char] then
         return 2
     else
         return false
