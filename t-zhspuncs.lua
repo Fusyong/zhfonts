@@ -1,20 +1,21 @@
-moduledata = moduledata or {}
-moduledata.zhspuncs = moduledata.zhspuncs or {}
-zhspuncs = moduledata.zhspuncs
+Moduledata = Moduledata or {}
+Moduledata.zhspuncs = Moduledata.zhspuncs or {}
 
 local hlist = nodes.nodecodes.hlist
 local glyph   = nodes.nodecodes.glyph --node.id ('glyph')
 local fonthashes = fonts.hashes
 local fontdata   = fonthashes.identifiers
 local quaddata   = fonthashes.quads
-local node_count = node.count
-local node_dimensions = node.dimensions
-local node_traverse_id = node.traverse_id
+-- local node_count = node.count
+-- local node_dimensions = node.dimensions
+-- local node_traverse_id = node.traverseid
 local node_traverse = node.traverse
-local insert_before = node.insert_before
-local insert_after = node.insert_after
+local insert_before = node.insertbefore
+local insert_after = node.insertafter
 local new_kern = nodes.pool.kern
 local tasks = nodes.tasks
+local node_hasattribute = node.hasattribute
+local node_getattribute = node.getattribute
 
 
 -- 正常左、右的预期留空率（前两个），左、右压缩比（后两个）
@@ -82,9 +83,11 @@ local puncs_r = {
 -- @glyph | hlist n 结点
 -- @return false | 1 | 2
 local function is_punc_glyph_or_hlist(n)
+    local v = node_getattribute(n, 1) -- 竖排模块中设置的属性{1: n.char}
     if n.id == glyph and puncs[n.char] then
         return 1
-    elseif n.id == hlist and node.getproperty(n) and puncs[node.getproperty(n).char] then
+    -- elseif n.id == hlist and node.getproperty(n) and puncs[node.getproperty(n).char] then
+    elseif n.id == hlist and v and puncs[v] then
         return 2
     else
         return false
@@ -245,7 +248,7 @@ local function compress_punc (head)
 end
 
 -- 包装回调任务：分行前的过滤器
-function zhspuncs.my_linebreak_filter (head, is_display)
+function Moduledata.zhspuncs.my_linebreak_filter (head, is_display)
     compress_punc (head)
     -- print(":::压缩标点后nodes.tosequence(head):::")
     -- print(nodes.tosequence(head))
@@ -253,7 +256,7 @@ function zhspuncs.my_linebreak_filter (head, is_display)
 end
 
 -- 分行后处理对齐
-function zhspuncs.align_left_puncs(head)
+function Moduledata.zhspuncs.align_left_puncs(head)
     local it = head
     while it do
         if it.id == hlist then
@@ -306,11 +309,11 @@ function zhspuncs.align_left_puncs(head)
 end
 
 -- 挂载任务
-function zhspuncs.opt ()
+function Moduledata.zhspuncs.opt ()
     -- 段落分行前回调（最后调用）
-    tasks.appendaction("processors","after","zhspuncs.my_linebreak_filter")
+    tasks.appendaction("processors","after","Moduledata.zhspuncs.my_linebreak_filter")
     -- 段落分行后回调（最后调用）
-    nodes.tasks.appendaction("finalizers", "after", "zhspuncs.align_left_puncs")
+    nodes.tasks.appendaction("finalizers", "after", "Moduledata.zhspuncs.align_left_puncs")
 end
 
 -- 标点悬挂/突出
@@ -352,5 +355,6 @@ context.definedfont({"Serif*default"})
 \definedfont[Serif*default]
 --]]
 
-return zhspuncs
+return Moduledata.zhspuncs
+
 
