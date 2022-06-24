@@ -1,5 +1,9 @@
 本项目是对[liyanrui/zhfonts](https://github.com/liyanrui/zhfonts)项目的改造，谨致谢忱！目前可用于ConTeXt中文直排实验项目[vertical-typesetting](https://github.com/Fusyong/vertical-typesetting)。
 
+## bug & TODO
+
+* [ ] 加kern处理标点压缩方式和悬挂方式，导致标点的bar的长度和位置不正确
+
 ## 调整说明
 
 * 增加文件t-zhspuncs.mkiv，使标点压缩成为一个独立模块。使用方法`\usemodule[zhspuncs]`
