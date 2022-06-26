@@ -18,8 +18,9 @@ local node_hasattribute = node.hasattribute
 local node_getattribute = node.getattribute
 
 
--- 正常左、右的预期留空率（前两个），左、右压缩比（后两个）
--- 比如`“`，单用时左、右空率0.5、0.1，在标点组中左右空率为0.5*0.5、0.1*1.0
+-- 前两个：正常(理想)左、右的预期留字宽；
+-- 后两个：压缩时，左、右留空对正常留空的比率
+-- 比如`“`，单用时左、右留空0.5字、0.1字，在标点组中左右留空0.5*0.5字、0.1*1.0字
 -- TODO：
 -- 按字体信息逐一计算，使得正常标点宽度与字体设计一致；
 -- 调整为c-p-c、c-p--p-c六种数据（目前缺cp--pc两种）；
@@ -28,7 +29,7 @@ local puncs = {
     -- 左半标点
     [0x2018] = {0.5, 0.1, 0.4, 1.0}, -- ‘
     [0x201C] = {0.5, 0.1, 0.4, 1.0}, -- “
-    [0x3008] = {0.3, 0.1, 0.4, 1.0}, -- 〈
+    [0x3008] = {0.25, 0.1, 0.4, 1.0}, -- 〈
     [0x300A] = {0.5, 0.1, 0.4, 1.0}, -- 《
     [0x300C] = {0.5, 0.1, 0.4, 1.0}, -- 「
     [0x300E] = {0.5, 0.1, 0.4, 1.0}, -- 『
@@ -41,7 +42,7 @@ local puncs = {
     -- 右半标点
     [0x2019] = {0.1, 0.5, 1.0, 0.4}, -- ’
     [0x201D] = {0.1, 0.5, 1.0, 0.4}, -- ”
-    [0x3009] = {0.1, 0.3, 1.0, 0.4}, -- 〉
+    [0x3009] = {0.1, 0.25, 1.0, 0.4}, -- 〉
     [0x300B] = {0.1, 0.5, 1.0, 0.4}, -- 》
     [0x300D] = {0.1, 0.5, 1.0, 0.4}, -- 」
     [0x300F] = {0.1, 0.5, 1.0, 0.4}, -- 』
@@ -67,16 +68,16 @@ local puncs = {
     [0x2026] = {0.10, 0.1, 1.0, 1.0},    -- …
 }
 
--- 旋转过的标点/竖排标点（装在hlist中，<hlist> n.head.data=10000）
+-- 旋转过的标点/竖排标点（装在hlist中）
 local puncs_r = {
-    [0x3001] = {0.15, 0.6, 1.0, 0.1},   -- 、
-    [0x3002] = {0.15, 0.6, 1.0, 0.1},   -- 。
-    [0xFF0C] = {0.15, 0.6, 1.0, 0.1},   -- ，
-    [0xFF0E] = {0.15, 0.6, 1.0, 0.1},   -- ．
-    [0xFF1A] = {0.15, 0.8, 1.0, 0.8},   -- ：
-    [0xFF01] = {0.15, 0.8, 1.0, 0.8},   -- ！
-    [0xFF1B] = {0.15, 0.8, 1.0, 0.8},   -- ；
-    [0xFF1F] = {0.15, 0.8, 0.7, 0.7},   -- ？
+    [0x3001] = {0.15, 0.6, 1.0, 0.3},   -- 、
+    [0x3002] = {0.15, 0.6, 1.0, 0.3},   -- 。
+    [0xFF0C] = {0.15, 0.6, 1.0, 0.3},   -- ，
+    [0xFF0E] = {0.15, 0.6, 1.0, 0.3},   -- ．
+    [0xFF1A] = {0.15, 0.15, 1.0, 1.0},   -- ：
+    [0xFF01] = {0.15, 0.15, 1.0, 1.0},   -- ！
+    [0xFF1B] = {0.15, 0.15, 1.0, 1.0},   -- ；
+    [0xFF1F] = {0.15, 0.15, 1.0, 1.0},   -- ？
 }
 
 -- 是标点结点(false, glyph:1, hlist:2)
@@ -170,22 +171,6 @@ local function is_zhcnpunc_node_group (n)
     end
 end
 
--- 是cjk_ideo（未使用）
-local function is_cjk_ideo (n)
-    -- CJK Ext A
-    if n.char >= 13312 and n.char <= 19893 then
-        return true
-    -- CJK
-    elseif n.char >= 19968 and n.char <= 40891 then
-        return true
-    -- CJK Ext B
-    elseif n.char >= 131072 and n.char <= 173782 then
-        return true
-    else
-        return false
-    end
-end
-
 -- r个空铅/嵌块(quad)的宽度（？？用结点宽度似乎更恰当）
 local function quad_multiple (font, r)
     local quad = quaddata[font]
@@ -198,36 +183,50 @@ local function process_punc (head, n, punc_flag)
     local is_hlist = (is_punc_glyph_or_hlist(n) == 2)
     local glyph_n = nil -- 当前字模结点
     local puncs_t = nil -- 当前标点表
-    if is_glyph then
-        glyph_n = n
-        puncs_t = puncs
-    elseif is_hlist then
-        glyph_n = n.head
-        puncs_t = puncs_r
-    end
+    
     -- 取得结点字体的描述（未缩放的原始字模信息）
-    local char = glyph_n.char
-    local font = glyph_n.font
-    local desc = fontdata[font].descriptions[char]
-    if not desc then return end
-    local quad = quad_multiple (font, 1)
-
-    local l_space = desc.boundingbox[1] / desc.width --左空比例
-    local r_space = (desc.width - desc.boundingbox[3]) / desc.width --右空比例
+    local char
+    local font
+    local desc
+    
+    local l_space_rate
+    local r_space_tate
+    if is_glyph then -- 一般标点
+        glyph_n = n
+        char = glyph_n.char
+        font = glyph_n.font
+        desc = fontdata[font].descriptions[char]
+        if not desc then return end
+        puncs_t = puncs
+        l_space_rate = desc.boundingbox[1] / desc.width --左空比例
+        r_space_tate = (desc.width - desc.boundingbox[3]) / desc.width --右空比例
+    elseif is_hlist then --旋转的标点
+        glyph_n = n.head
+        char = glyph_n.char
+        font = glyph_n.font
+        desc = fontdata[font].descriptions[char]
+        if not desc then return end
+        puncs_t = puncs_r
+        -- l_space_rate = desc.tsb / desc.vheight --左空比例
+        l_space_rate = 0.15 --（直排模块pre_space）当前设置的前空比例 TODO 优化
+        -- r_space_tate = (desc.vheight -desc.tsb - desc.height - desc.depth) / desc.vheight --右空比例
+        r_space_tate = (desc.vheight - desc.height - desc.depth) / desc.vheight - l_space_rate --右空比例
+    end
+    
     local l_kern, r_kern = 0.0, 0.0
-
+    local quad = quad_multiple (font, 1) --空铅/单字尺寸
     if punc_flag == "only" then
-        l_kern = (puncs_t[char][1] - l_space) * quad --c-pc
-        r_kern = (puncs_t[char][2] - r_space) * quad --cp-c
+        l_kern = (puncs_t[char][1] - l_space_rate) * quad --c-pc
+        r_kern = (puncs_t[char][2] - r_space_tate) * quad --cp-c
     elseif punc_flag == "with_next" then
-        l_kern = (puncs_t[char][1] - l_space) * quad --c-pc
-        r_kern = (puncs_t[char][2] * puncs_t[char][4] - r_space) * quad --cpp-c
+        l_kern = (puncs_t[char][1] - l_space_rate) * quad --c-ppc
+        r_kern = (puncs_t[char][2] * puncs_t[char][4] - r_space_tate) * quad --cp-pc
     elseif punc_flag == "with_pre" then
-        l_kern = (puncs_t[char][1] * puncs_t[char][3] - l_space) * quad -- c-ppc
-        r_kern = (puncs_t[char][2] * puncs_t[char][4] - r_space) * quad --cpp-c
+        l_kern = (puncs_t[char][1] * puncs_t[char][3] - l_space_rate) * quad -- c-ppc
+        r_kern = (puncs_t[char][2] * puncs_t[char][4] - r_space_tate) * quad --cpp-c
     elseif punc_flag == "all" then
-        l_kern = (puncs_t[char][1] * puncs_t[char][3] - l_space) * quad -- c-ppc
-        r_kern = (puncs_t[char][2] * puncs_t[char][4] - r_space) * quad --cpp-c
+        l_kern = (puncs_t[char][1] * puncs_t[char][3] - l_space_rate) * quad -- c-ppc
+        r_kern = (puncs_t[char][2] * puncs_t[char][4] - r_space_tate) * quad --cpp-c
     end
 
     insert_before (head, n, new_kern (l_kern))
