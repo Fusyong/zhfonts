@@ -4,8 +4,8 @@ Moduledata.zhspuncs = Moduledata.zhspuncs or {}
 local hlist = nodes.nodecodes.hlist
 local glyph   = nodes.nodecodes.glyph --node.id ('glyph')
 local fonthashes = fonts.hashes
-local fontdata   = fonthashes.identifiers
-local quaddata   = fonthashes.quads
+local fontdata   = fonthashes.identifiers --字体身份表
+local quaddata   = fonthashes.quads --空铅宽度（em）表（xheight指ex）
 -- local node_count = node.count
 -- local node_dimensions = node.dimensions
 -- local node_traverse_id = node.traverseid
@@ -70,14 +70,14 @@ local puncs = {
 
 -- 旋转过的标点/竖排标点（装在hlist中）
 local puncs_r = {
-    [0x3001] = {0.15, 0.6, 1.0, 0.3},   -- 、
-    [0x3002] = {0.15, 0.6, 1.0, 0.3},   -- 。
-    [0xFF0C] = {0.15, 0.6, 1.0, 0.3},   -- ，
-    [0xFF0E] = {0.15, 0.6, 1.0, 0.3},   -- ．
-    [0xFF1A] = {0.15, 0.15, 1.0, 1.0},   -- ：
-    [0xFF01] = {0.15, 0.15, 1.0, 1.0},   -- ！
-    [0xFF1B] = {0.15, 0.15, 1.0, 1.0},   -- ；
-    [0xFF1F] = {0.15, 0.15, 1.0, 1.0},   -- ？
+    [0x3001] = {0.15, 0.7, 1.0, 0.6},   -- 、
+    [0x3002] = {0.15, 0.7, 1.0, 0.6},   -- 。
+    [0xFF0C] = {0.15, 0.7, 1.0, 0.6},   -- ，
+    [0xFF0E] = {0.15, 0.7, 1.0, 0.6},   -- ．
+    [0xFF1A] = {0.10, 0.4, 1.0, 1.0},   -- ：
+    [0xFF01] = {0.10, 0.4, 1.0, 1.0},   -- ！
+    [0xFF1B] = {0.10, 0.4, 1.0, 1.0},   -- ；
+    [0xFF1F] = {0.10, 0.4, 1.0, 1.0},   -- ？
 }
 
 -- 是标点结点(false, glyph:1, hlist:2)
@@ -88,7 +88,7 @@ local function is_punc_glyph_or_hlist(n)
     if n.id == glyph and puncs[n.char] then
         return 1
     -- elseif n.id == hlist and node.getproperty(n) and puncs[node.getproperty(n).char] then
-    elseif n.id == hlist and v and puncs[v] then
+    elseif n.id == hlist and v and puncs_r[v] then
         return 2
     else
         return false
@@ -207,10 +207,9 @@ local function process_punc (head, n, punc_flag)
         desc = fontdata[font].descriptions[char]
         if not desc then return end
         puncs_t = puncs_r
-        -- l_space_rate = desc.tsb / desc.vheight --左空比例
-        l_space_rate = 0.15 --（直排模块pre_space）当前设置的前空比例 TODO 优化
-        -- r_space_tate = (desc.vheight -desc.tsb - desc.height - desc.depth) / desc.vheight --右空比例
-        r_space_tate = (desc.vheight - desc.height - desc.depth) / desc.vheight - l_space_rate --右空比例
+        l_space_rate = desc.boundingbox[1] / desc.width --左空比例(与未旋转前一样)
+        -- r_space_tate = (desc.vheight - desc.height - desc.depth) / desc.vheight - l_space_rate --右空比例
+        r_space_tate = (desc.vheight - desc.height - desc.depth) / desc.width - l_space_rate --右空比例
     end
     
     local l_kern, r_kern = 0.0, 0.0
