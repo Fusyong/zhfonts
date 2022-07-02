@@ -173,7 +173,8 @@ end
 
 -- r个空铅/嵌块(quad)的宽度（？？用结点宽度似乎更恰当）
 local function quad_multiple (font, r)
-    local quad = quaddata[font]
+    -- local quad = quaddata[font]
+    local quad = fontdata[font].parameters.quad
     return r * quad
 end
 
