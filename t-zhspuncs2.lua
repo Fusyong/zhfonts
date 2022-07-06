@@ -22,11 +22,7 @@ local node_hasattribute = node.hasattribute
 local node_getattribute = node.getattribute
 
 
--- 前两个：正常(理想)左、右的预期留字宽；
--- 后两个：压缩时，左、右留空对正常留空的比率
--- 比如`“`，单用时左、右留空0.5字、0.1字，在标点组中左右留空0.5*0.5字、0.1*1.0字
 -- TODO：
--- 按字体信息逐一计算，使得正常标点宽度与字体设计一致；
 -- 调整为c-p-c、c-p--p-c六种数据（目前缺cp--pc两种）；
 -- 再左、右、中标点分组
 
@@ -42,49 +38,49 @@ local puncs_font = {}
 
 -- 左半标点
 local puncs_left = {
-    [0x2018] = {0.5, 0.1, 0.4, 1.0}, -- ‘
-    [0x201C] = {0.5, 0.1, 0.4, 1.0}, -- “
-    [0x3008] = {0.25, 0.1, 0.4, 1.0}, -- 〈
-    [0x300A] = {0.5, 0.1, 0.4, 1.0}, -- 《
-    [0x300C] = {0.5, 0.1, 0.4, 1.0}, -- 「
-    [0x300E] = {0.5, 0.1, 0.4, 1.0}, -- 『
-    [0x3010] = {0.5, 0.1, 0.4, 1.0}, -- 【
-    [0x3014] = {0.5, 0.1, 0.4, 1.0}, -- 〔
-    [0x3016] = {0.5, 0.1, 0.4, 1.0}, -- 〖
-    [0xFF08] = {0.5, 0.1, 0.4, 1.0}, -- （
-    [0xFF3B] = {0.5, 0.1, 0.4, 1.0}, -- ［
-    [0xFF5B] = {0.5, 0.1, 0.4, 1.0}, -- ｛
+    [0x2018] = true, -- ‘
+    [0x201C] = true, -- “
+    [0x3008] = true, -- 〈
+    [0x300A] = true, -- 《
+    [0x300C] = true, -- 「
+    [0x300E] = true, -- 『
+    [0x3010] = true, -- 【
+    [0x3014] = true, -- 〔
+    [0x3016] = true, -- 〖
+    [0xFF08] = true, -- （
+    [0xFF3B] = true, -- ［
+    [0xFF5B] = true, -- ｛
 }
 
 -- 右标点
 local puncs_right = {
     -- 右半标点
-    [0x2019] = {0.1, 0.5, 1.0, 0.4}, -- ’
-    [0x201D] = {0.1, 0.5, 1.0, 0.4}, -- ”
-    [0x3009] = {0.1, 0.25, 1.0, 0.4}, -- 〉
-    [0x300B] = {0.1, 0.5, 1.0, 0.4}, -- 》
-    [0x300D] = {0.1, 0.5, 1.0, 0.4}, -- 」
-    [0x300F] = {0.1, 0.5, 1.0, 0.4}, -- 』
-    [0x3011] = {0.1, 0.5, 1.0, 0.4}, -- 】
-    [0x3015] = {0.1, 0.5, 1.0, 0.4}, -- 〕
-    [0x3017] = {0.1, 0.5, 1.0, 0.4}, -- 〗
-    [0xFF09] = {0.1, 0.5, 1.0, 0.4}, -- ）
-    [0xFF3D] = {0.1, 0.5, 1.0, 0.4}, -- ］
-    [0xFF5D] = {0.1, 0.5, 1.0, 0.4}, -- ｝
+    [0x2019] = true, -- ’
+    [0x201D] = true, -- ”
+    [0x3009] = true, -- 〉
+    [0x300B] = true, -- 》
+    [0x300D] = true, -- 」
+    [0x300F] = true, -- 』
+    [0x3011] = true, -- 】
+    [0x3015] = true, -- 〕
+    [0x3017] = true, -- 〗
+    [0xFF09] = true, -- ）
+    [0xFF3D] = true, -- ］
+    [0xFF5D] = true, -- ｝
     -- 单右标点
-    [0x3001] = {0.15, 0.6, 1.0, 0.3},   -- 、
-    [0x3002] = {0.15, 0.6, 1.0, 0.3},   -- 。
-    [0xFF0C] = {0.15, 0.6, 1.0, 0.3},   -- ，
-    [0xFF0E] = {0.15, 0.6, 1.0, 0.3},   -- ．
-    [0xFF1A] = {0.15, 0.6, 1.0, 0.5},   -- ：
-    [0xFF1B] = {0.15, 0.6, 1.0, 0.5},   -- ；
-    [0xFF01] = {0.15, 0.6, 1.0, 0.5},   -- ！
-    [0xFF1F] = {0.15, 0.6, 1.0, 0.5},   -- ？
-    [0xFF05] = {0.00, 0.0, 1.0, 0.5},    -- ％
-    [0x2500] = {0.00, 0.0, 1.0, 1.0},    -- ─
+    [0x3001] = true,   -- 、
+    [0x3002] = true,   -- 。
+    [0xFF0C] = true,   -- ，
+    [0xFF0E] = true,   -- ．
+    [0xFF1A] = true,   -- ：
+    [0xFF1B] = true,   -- ；
+    [0xFF01] = true,   -- ！
+    [0xFF1F] = true,   -- ？
+    [0xFF05] = true,    -- ％
+    [0x2500] = true,    -- ─
     -- 双用左右皆可，单用仅在文右
-    [0x2014] = {0.00, 0.0, 1.0, 1.0}, -- — 半字线
-    [0x2026] = {0.10, 0.1, 1.0, 1.0},    -- …
+    [0x2014] = true, -- — 半字线
+    [0x2026] = true,    -- …
 }
 
 -- 所有标点
@@ -92,15 +88,15 @@ local puncs = table.merged(puncs_left, puncs_right)
 
 -- 旋转过的标点/竖排标点（装在hlist中）
 local puncs_to_rotate = {
-    [0x3001] = {0.15, 0.7, 1.0, 0.6},   -- 、
-    [0x3002] = {0.15, 0.7, 1.0, 0.6},   -- 。
-    [0xFF0C] = {0.15, 0.7, 1.0, 0.6},   -- ，
-    [0xFF0E] = {0.15, 0.7, 1.0, 0.6},   -- ．
-    [0xFF1A] = {0.06, 0.4, 1.0, 1.0},   -- ：
+    [0x3001] = true,   -- 、
+    [0x3002] = true,   -- 。
+    [0xFF0C] = true,   -- ，
+    [0xFF0E] = true,   -- ．
+    [0xFF1A] = true,   -- ：
     -- 以下，后两位压缩值与前两位相乘后相等，即与直排模块的“居中”一致
-    [0xFF01] = {0.05, 0.40, 4.0, 0.7},   -- ！
-    [0xFF1B] = {0.10, 0.4, 2.5, 0.6},   -- ；
-    [0xFF1F] = {0.05, 0.60, 4.0, 0.4},   -- ？
+    [0xFF01] = true,   -- ！
+    [0xFF1B] = true,   -- ；
+    [0xFF1F] = true,   -- ？
 }
 
 -- 是标点结点(false, 一般:1, 将要旋转:2)
@@ -206,9 +202,7 @@ local function process_punc (head, n, punc_flag)
         
         if not desc then return end --???
         local x1 =  desc.boundingbox[1]
-        local y1 =  desc.boundingbox[2]
         local x2 =  desc.boundingbox[3]
-        local y2 =  desc.boundingbox[4]
         local w_in --内框宽度
         local left_space --前空
         local right_space -- 后空
@@ -236,6 +230,9 @@ local function process_punc (head, n, punc_flag)
         puncs_font[font][char][1] = l_kern
         r_kern = (two_space/2 - right_space) / desc_width * quad --右kern比例
         puncs_font[font][char][2] = r_kern
+
+        -- 左侧空白（供对齐行头用）  TODO
+        puncs_font[font][char][3] = (two_space/2) / desc_width * quad
     end
     
     
@@ -276,8 +273,6 @@ end
 -- 包装回调任务：分行前的过滤器
 function Moduledata.zhspuncs.my_linebreak_filter (head, is_display)
     compress_punc (head)
-    -- print(":::压缩标点后nodes.tosequence(head):::")
-    -- print(nodes.tosequence(head))
     return head, true
 end
 
@@ -302,7 +297,7 @@ function Moduledata.zhspuncs.align_left_puncs(head)
                 -- 文本行整体向左偏移
                     -- local quad = quaddata[font]
     
-                neg_kern = -puncs[hit.char][1] * fontdata[hit.font].parameters.quad * 0.7 --ah21
+                neg_kern = -puncs_font[hit.font][hit.char][3] --ah21
                 -- neg_kern = -left_puncs[hit.char] * fontdata[hit.font].parameters.quad --ah21
                 insert_before(head, hit, new_kern(neg_kern))
                 -- 统计字符个数
@@ -358,13 +353,16 @@ local function update_protrusions()
     }
     
     -- 合并两表到新表myvector，而不是修改font-ext.lua中的vectors.quality
-    -- 横排时
+    -- TODO 补齐
+    -- 横排时    
     local my_vectors_quality = {
         [0x2018] = { 0.60, 0 },  -- ‘
         [0x2019] = { 0, 0.60 },  -- ’
         [0x201C] = { 0.50, 0 },  -- “
         [0x201D] = { 0, 0.35 },  -- ”
-        [0x300A] = { 0.60, 0 },  -- 《
+        [0x300C] = { 0.50, 0 }, -- 「
+        [0x300E] = { 0.50, 0 }, -- 『
+        [0x300A] = { 0.40, 0 },  -- 《
         [0x300B] = { 0, 0.60 },  -- 》
         [0xFF08] = { 0.50, 0 },  -- （
         [0xFF09] = { 0, 0.50 },  -- ）
