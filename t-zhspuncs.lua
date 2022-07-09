@@ -21,6 +21,27 @@ local tasks = nodes.tasks
 local node_hasattribute = node.hasattribute
 local node_getattribute = node.getattribute
 
+--[[ 结点跟踪工具
+local function show_detail(n, label) 
+    print(">>>>>>>>>"..label.."<<<<<<<<<<")
+    print(nodes.toutf(n))
+    for i in node.traverse(n) do
+        local char
+        if i.id == glyph_id then
+            char = utf8.char(i.char)
+            print(i, char)
+        elseif i.id == nodes.nodecodes.penalty then
+            print(i, i.penalty)
+        elseif i.id == nodes.nodecodes.glue then
+            print(i, i.width, i.stretch, i.shrink, i.stretchorder, i.shrinkorder)
+        elseif i.id == nodes.nodecodes.hlist then
+            print(i, nodes.toutf(i.list))
+        else
+            print(i)
+        end
+    end
+end
+--]]
 
 -- TODO：
 -- 调整为c-p-c、c-p--p-c六种数据（目前缺cp--pc两种）；
@@ -29,7 +50,7 @@ local node_getattribute = node.getattribute
 -- 标点缓存数据
 -- {
 --     font={
---         [0x2018]={r_l, r_r, c_l, c_r},
+--         [0x2018]={kern_l, kern_r, s_l}, -- 左kern、右kern、左空（对启用）
 --         ...
 --     },
 --     ...
