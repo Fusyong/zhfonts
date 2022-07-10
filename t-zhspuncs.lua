@@ -7,21 +7,19 @@ Moduledata.vertical_typeset = Moduledata.vertical_typeset or {}
 
 local hlist = nodes.nodecodes.hlist
 local glyph_id   = nodes.nodecodes.glyph --node.id ('glyph')
+local glue_id   = nodes.nodecodes.glue
+
 local fonthashes = fonts.hashes
 local fontdata   = fonthashes.identifiers --字体身份表
-local quaddata   = fonthashes.quads --空铅宽度（em）表（xheight指ex）
--- local node_count = node.count
--- local node_dimensions = node.dimensions
--- local node_traverse_id = node.traverseid
-local node_traverse = node.traverse
-local insert_before = node.insertbefore
-local insert_after = node.insertafter
-local new_kern = nodes.pool.kern
-local tasks = nodes.tasks
-local node_hasattribute = node.hasattribute
-local node_getattribute = node.getattribute
 
---[[ 结点跟踪工具
+local node_traverse = node.traverse
+local node_insertbefore = node.insertbefore
+local node_insertafter = node.insertafter
+local nodes_pool_kern = nodes.pool.kern
+local nodes_tasks_appendaction = nodes.tasks.appendaction
+local tex_sp = tex.sp
+
+---[[ 结点跟踪工具
 local function show_detail(n, label) 
     print(">>>>>>>>>"..label.."<<<<<<<<<<")
     print(nodes.toutf(n))
@@ -50,7 +48,7 @@ end
 -- 标点缓存数据
 -- {
 --     font={
---         [0x2018]={kern_l, kern_r, s_l}, -- 左kern、右kern、左空（对启用）
+--         [0x2018]={kern_l, kern_r, s_l}, -- 左kern、右kern、左空（左对齐启用）
 --         ...
 --     },
 --     ...
@@ -204,9 +202,11 @@ local function process_punc (head, n, punc_flag)
     local char = n.char
     local font = n.font
 
-    -- 实际空白率
+    -- 左右实际kern
     local l_kern
     local r_kern
+    -- 单侧空白（两侧相同）
+    local one_side_space
 
     puncs_font[font] = puncs_font[font] or {}
     -- 空铅
@@ -217,13 +217,15 @@ local function process_punc (head, n, punc_flag)
     if  #puncs_font[font][char] >0 then
         l_kern =  puncs_font[font][char][1]
         r_kern =  puncs_font[font][char][2]
+        one_side_space = puncs_font[font][char][3]
     else -- 计算并缓存
         local desc = fontdata[font].descriptions[char]
         local desc_width = desc.width
         
         if not desc then return end --???
-        local x1 =  desc.boundingbox[1]
-        local x2 =  desc.boundingbox[3]
+        local boundingbox = desc.boundingbox
+        local x1 =  boundingbox[1]
+        local x2 =  boundingbox[3]
         local w_in --内框宽度
         local left_space --前空
         local right_space -- 后空
@@ -252,8 +254,9 @@ local function process_punc (head, n, punc_flag)
         r_kern = (two_space/2 - right_space) / desc_width * quad --右kern比例
         puncs_font[font][char][2] = r_kern
 
-        -- 左侧空白（供对齐行头用）  TODO
-        puncs_font[font][char][3] = (two_space/2) / desc_width * quad
+        -- 左、右侧空白（供对齐行头、右侧收缩用）  TODO
+        one_side_space = (two_space/2) / desc_width * quad
+        puncs_font[font][char][3] = one_side_space
     end
     
     
@@ -272,8 +275,24 @@ local function process_punc (head, n, punc_flag)
         right_kern =r_kern --cp-pc
     end
 
-    insert_before (head, n, new_kern (left_kern))
-    insert_after (head, n, new_kern (right_kern))
+    -- 插入kern
+    local k
+    head,k = node_insertbefore (head, n, nodes_pool_kern (left_kern))
+    head,k = node_insertafter (head, n, nodes_pool_kern (right_kern))
+
+    -- 更改系统插入右标点后、所有标点前的半字收缩胶 TODO 可以更改系统常量吗？？？
+    if punc_flag == "with_next" or punc_flag == "all_three" then
+        local g = k.next
+        while g do
+            if g.id == glyph_id then
+                break
+            elseif g.id == glue_id and g.shrink then
+                g.shrink = one_side_space
+                break
+            end
+            g = g.next
+        end
+    end
 end
 
 -- 迭代段落结点列表，处理标点组
@@ -292,7 +311,7 @@ end
 
 
 -- 包装回调任务：分行前的过滤器
-function Moduledata.zhspuncs.my_linebreak_filter (head, is_display)
+function Moduledata.zhspuncs.my_linebreak_filter (head)
     compress_punc (head)
     return head, true
 end
@@ -320,7 +339,7 @@ function Moduledata.zhspuncs.align_left_puncs(head)
     
                 neg_kern = -puncs_font[hit.font][hit.char][3] --ah21
                 -- neg_kern = -left_puncs[hit.char] * fontdata[hit.font].parameters.quad --ah21
-                insert_before(head, hit, new_kern(neg_kern))
+                node_insertbefore(head, hit, nodes_pool_kern(neg_kern))
                 -- 统计字符个数
                 local w = 0
                 local x = hit
@@ -338,7 +357,7 @@ function Moduledata.zhspuncs.align_left_puncs(head)
                         i = i + 1
                         -- 最后一个字符之后不插入 kern
                         if i < w then 
-                            insert_after(head, x, new_kern(av_neg_kern))
+                            node_insertafter(head, x, nodes_pool_kern(av_neg_kern))
                         end
                     end
                     x = x.next
@@ -355,9 +374,9 @@ end
 -- 挂载任务
 function Moduledata.zhspuncs.opt ()
     -- 段落分行前回调（最后调用）
-    tasks.appendaction("processors","after","Moduledata.zhspuncs.my_linebreak_filter")
+    nodes_tasks_appendaction("processors","after","Moduledata.zhspuncs.my_linebreak_filter")
     -- 段落分行后回调（最后调用）
-    nodes.tasks.appendaction("finalizers", "after", "Moduledata.zhspuncs.align_left_puncs")
+    nodes_tasks_appendaction("finalizers", "after", "Moduledata.zhspuncs.align_left_puncs")
 end
 
 
