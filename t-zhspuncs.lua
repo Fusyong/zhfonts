@@ -1,5 +1,8 @@
 Moduledata = Moduledata or {}
 Moduledata.zhspuncs = Moduledata.zhspuncs or {}
+-- 配合直排
+Moduledata.vertical_typeset = Moduledata.vertical_typeset or {}
+Moduledata.vertical_typeset.appended = Moduledata.vertical_typeset.appended or false
 
 -- 直排模块（判断是否挂载直排，以便处理旋转的标点）
 Moduledata.vertical_typeset = Moduledata.vertical_typeset or {}
