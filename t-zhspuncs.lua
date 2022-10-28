@@ -238,9 +238,10 @@ local function process_punc (head, n, punc_flag)
             w_in = x2 - x1
         elseif is_punc(n) == 2 then --旋转的标点
             left_space = x1
-            -- TODO BUG 有些字体没有深度数据？？？
-            right_space = desc_width - left_space - desc.depth - desc.height
-            w_in =  desc.depth + desc.height
+            -- 有些字体可能没有深度（整体在线上时）、高度（整体在线下时）数据
+            local desc_depth = desc.depth or -desc.boundingbox[2]
+            right_space = desc_width - left_space - desc_depth - desc.height
+            w_in =  desc_depth + desc.height
         end
         
         local two_space -- 两侧总空
@@ -396,7 +397,7 @@ local function update_protrusions()
     }
     
     -- 合并两表到新表myvector，而不是修改font-ext.lua中的vectors.quality
-    -- TODO 补齐
+    -- TODO 补齐，使用实测数据并缓存
     -- 横排时    
     local my_vectors_quality = {
         [0x2018] = { 0.60, 0 },  -- ‘
@@ -407,8 +408,10 @@ local function update_protrusions()
         [0x300E] = { 0.50, 0 }, -- 『
         [0x300A] = { 0.40, 0 },  -- 《
         [0x300B] = { 0, 0.60 },  -- 》
+        [0x3009] = { 0, 0.60 }, -- 〉
+        [0x3011] = { 0, 0.50 }, -- 】
         [0xFF08] = { 0.50, 0 },  -- （
-        [0xFF09] = { 0, 0.50 },  -- ）
+        [0xFF09] = { 0, 0.60 },  -- ）
         [0x3001] = { 0, 0.65 },  -- 、
         [0xFF0c] = { 0, 0.65 },  -- ，
         [0x3002] = { 0, 0.60 },  -- 。
@@ -416,6 +419,7 @@ local function update_protrusions()
         [0xFF01] = { 0, 0.65 },   -- ！
         [0xFF1F] = { 0, 0.65 },  -- ？
         [0xFF1B] = { 0, 0.17 },   -- ；
+        [0xFF1A] = { 0, 0.65 },   -- ：
     }
     -- 直排时更新
     if Moduledata.vertical_typeset.appended then
