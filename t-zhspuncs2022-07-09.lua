@@ -1,5 +1,5 @@
-Moduledata = Moduledata or {}
-Moduledata.zhspuncs = Moduledata.zhspuncs or {}
+Thirddata = Thirddata or {}
+Thirddata.zhspuncs = Thirddata.zhspuncs or {}
 
 local hlist = nodes.nodecodes.hlist
 local glyph   = nodes.nodecodes.glyph --node.id ('glyph')
@@ -247,7 +247,7 @@ local function compress_punc (head)
 end
 
 -- 包装回调任务：分行前的过滤器
-function Moduledata.zhspuncs.my_linebreak_filter (head, is_display)
+function Thirddata.zhspuncs.my_linebreak_filter (head, is_display)
     compress_punc (head)
     -- print(":::压缩标点后nodes.tosequence(head):::")
     -- print(nodes.tosequence(head))
@@ -255,7 +255,7 @@ function Moduledata.zhspuncs.my_linebreak_filter (head, is_display)
 end
 
 -- 分行后处理对齐
-function Moduledata.zhspuncs.align_left_puncs(head)
+function Thirddata.zhspuncs.align_left_puncs(head)
     local it = head
     while it do
         if it.id == hlist then
@@ -308,11 +308,11 @@ function Moduledata.zhspuncs.align_left_puncs(head)
 end
 
 -- 挂载任务
-function Moduledata.zhspuncs.opt ()
+function Thirddata.zhspuncs.opt ()
     -- 段落分行前回调（最后调用）
-    tasks.appendaction("processors","after","Moduledata.zhspuncs.my_linebreak_filter")
+    tasks.appendaction("processors","after","Thirddata.zhspuncs.my_linebreak_filter")
     -- 段落分行后回调（最后调用）
-    nodes.tasks.appendaction("finalizers", "after", "Moduledata.zhspuncs.align_left_puncs")
+    nodes.tasks.appendaction("finalizers", "after", "Thirddata.zhspuncs.align_left_puncs")
 end
 
 -- 标点悬挂/突出
@@ -354,6 +354,6 @@ context.definedfont({"Serif*default"})
 \definedfont[Serif*default]
 --]]
 
-return Moduledata.zhspuncs
+return Thirddata.zhspuncs
 
 

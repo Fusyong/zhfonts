@@ -1,11 +1,11 @@
-Moduledata = Moduledata or {}
-Moduledata.zhspuncs = Moduledata.zhspuncs or {}
+Thirddata = Thirddata or {}
+Thirddata.zhspuncs = Thirddata.zhspuncs or {}
 -- 配合直排
-Moduledata.vertical_typeset = Moduledata.vertical_typeset or {}
-Moduledata.vertical_typeset.appended = Moduledata.vertical_typeset.appended or false
+Thirddata.vertical_typeset = Thirddata.vertical_typeset or {}
+Thirddata.vertical_typeset.appended = Thirddata.vertical_typeset.appended or false
 
 -- 直排模块（判断是否挂载直排，以便处理旋转的标点）
-Moduledata.vertical_typeset = Moduledata.vertical_typeset or {}
+Thirddata.vertical_typeset = Thirddata.vertical_typeset or {}
 
 
 local hlist = nodes.nodecodes.hlist
@@ -127,7 +127,7 @@ local puncs_to_rotate = {
 local function is_punc(n)
     if n.id == glyph_id then
         -- 直排旋转标点
-        if Moduledata.vertical_typeset.appended and puncs_to_rotate[n.char] then
+        if Thirddata.vertical_typeset.appended and puncs_to_rotate[n.char] then
             return 2
         elseif puncs[n.char] then
             return 1
@@ -315,13 +315,13 @@ end
 
 
 -- 包装回调任务：分行前的过滤器
-function Moduledata.zhspuncs.my_linebreak_filter (head)
+function Thirddata.zhspuncs.my_linebreak_filter (head)
     compress_punc (head)
     return head, true
 end
 
 -- 分行后处理对齐
-function Moduledata.zhspuncs.align_left_puncs(head)
+function Thirddata.zhspuncs.align_left_puncs(head)
     local it = head
     while it do
         if it.id == hlist then
@@ -376,11 +376,11 @@ function Moduledata.zhspuncs.align_left_puncs(head)
 end
 
 -- 挂载任务
-function Moduledata.zhspuncs.opt ()
+function Thirddata.zhspuncs.opt ()
     -- 段落分行前回调（最后调用）
-    nodes_tasks_appendaction("processors","after","Moduledata.zhspuncs.my_linebreak_filter")
+    nodes_tasks_appendaction("processors","after","Thirddata.zhspuncs.my_linebreak_filter")
     -- 段落分行后回调（最后调用）
-    nodes_tasks_appendaction("finalizers", "after", "Moduledata.zhspuncs.align_left_puncs")
+    nodes_tasks_appendaction("finalizers", "after", "Thirddata.zhspuncs.align_left_puncs")
 end
 
 
@@ -422,7 +422,7 @@ local function update_protrusions()
         [0xFF1A] = { 0, 0.65 },   -- ：
     }
     -- 直排时更新
-    if Moduledata.vertical_typeset.appended then
+    if Thirddata.vertical_typeset.appended then
         local puncs_to_rotated = {
             [0x3001] = {0, 0.65},   -- 、
             [0xFF0C] = {0, 0.5},   -- ，
@@ -452,6 +452,6 @@ local function update_protrusions()
 end
 update_protrusions() --更新标点悬挂数据
 
-return Moduledata.zhspuncs
+return Thirddata.zhspuncs
 
 

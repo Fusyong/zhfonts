@@ -1,6 +1,6 @@
-Moduledata = Moduledata or {}
-Moduledata.zhfonts = Moduledata.zhfonts or {}
-local zhfonts = Moduledata.zhfonts
+Thirddata = Thirddata or {}
+Thirddata.zhfonts = Thirddata.zhfonts or {}
+local zhfonts = Thirddata.zhfonts
 local zhspuncs = require "t-zhspuncs"
 
 local string_strip = string.strip
